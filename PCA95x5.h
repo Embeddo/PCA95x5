@@ -68,11 +68,19 @@ class PCA95x5 {
     Ports pol {0x0000};
     Ports dir {0xFFFF};
     uint8_t status {0x00};
+    SemaphoreHandle_t i2cSemaphore = nullptr;
 
 public:
     void attach(WireType& wire, uint8_t i2c_addr = BASE_I2C_ADDR) {
         this->wire = &wire;
         this->addr = i2c_addr;
+
+        if (this->i2cSemaphore)
+            vSemaphoreDelete(this->i2cSemaphore);
+
+        this->i2cSemaphore = xSemaphoreCreateBinary();
+
+        xSemaphoreGive(this->i2cSemaphore);
     }
 
     uint16_t read() {
@@ -142,20 +150,24 @@ private:
     }
 
     int8_t read_bytes(const uint8_t dev, const uint8_t reg, uint8_t* data, const uint8_t size) {
+        xSemaphoreTake(this->i2cSemaphore, portMAX_DELAY);
         wire->beginTransmission(dev);
         wire->write(reg);
         wire->endTransmission();
         wire->requestFrom(dev, size);
         int8_t count = 0;
         while (wire->available()) data[count++] = wire->read();
+        xSemaphoreGive(this->i2cSemaphore);
         return count;
     }
 
     bool write_bytes(const uint8_t dev, const uint8_t reg, const uint8_t* data, const uint8_t size) {
+        xSemaphoreTake(this->i2cSemaphore, portMAX_DELAY);
         wire->beginTransmission(dev);
         wire->write(reg);
         for (uint8_t i = 0; i < size; i++) wire->write(data[i]);
         status = wire->endTransmission();
+        xSemaphoreGive(this->i2cSemaphore);
         return (status == 0);
     }
 };
