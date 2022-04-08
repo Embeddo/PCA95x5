@@ -63,14 +63,15 @@ class PCA95x5 {
 
     WireType* wire {nullptr};
     uint8_t addr {BASE_I2C_ADDR};
-    Ports input {0x0000};
-    Ports output {0xFFFF};
     Ports pol {0x0000};
     Ports dir {0xFFFF};
     uint8_t status {0x00};
     SemaphoreHandle_t i2cSemaphore = nullptr;
 
 public:
+    Ports input {0x0000};
+    Ports output {0xFFFF};
+
     void attach(WireType& wire, uint8_t i2c_addr = BASE_I2C_ADDR) {
         this->wire = &wire;
         this->addr = i2c_addr;
